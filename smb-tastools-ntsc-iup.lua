@@ -107,20 +107,21 @@ function manipsubpx(xmov, accel, subdiff, lose, taseditorname)
       local controller = taseditor.getinput(frame, 1)
 
       if (loss + spdtable[i] + spdtable[i - 1] > subdiff) then
-         local f = subsum(spdtable, subdiff - loss, i - 1, {})
+         spdtable = {unpack(spdtable, 1, i - 1)}
+         local f = subsum(spdtable, subdiff - loss)
 
          if (f == nil) then
-            f = subsum(spdtable, subdiff - loss + (lose and 1 or -1), i - 1, {})
+            f = subsum(spdtable, subdiff - loss + (lose and 1 or -1))
          end
 
-         for j = 1, #f do
+         for j = #f, 1, -1 do
             for k = 1, f[j] do
                controller = taseditor.getinput(frame, 1)
                taseditor.submitinputchange(frame, 1, AND(controller, 63))
                frame = frame + 1
             end
 
-            loss = loss + spdtable[i - j] * f[j]
+            loss = loss + spdtable[j] * f[j]
 
             controller = taseditor.getinput(frame, 1)
             taseditor.submitinputchange(frame, 1, dir and AND(OR(controller, 128), 191) or AND(OR(controller, 64), 127))
@@ -145,27 +146,24 @@ function manipsubpx(xmov, accel, subdiff, lose, taseditorname)
    return subdiff .. ((loss - subdiff == 0) and "" or " (" .. (lose and "+" or "") .. (loss - subdiff) .. (lose and " more)" or " less)"))
 end
 
-function subsum(choices, target, index, steps)
-   if (target == 0) then
-      return steps
+function subsum(choices, target)
+   local temp = {}
+   temp[0] = {}
+   for i = 0, #choices do
+      temp[0][i] = 0
    end
 
-   if (index < 1 or choices[index] == 0) then
-      return nil
-   end
-
-   for i = target % choices[index], target, choices[index] do
-      local nsteps = {unpack(steps)}
-      table.insert(nsteps, (target - i) / choices[index])
-
-      local ret = subsum(choices, i, index - 1, nsteps)
-
-      if (ret ~= nil) then
-         return ret
+   for tt = 1, target do
+      for i, c in pairs(choices) do
+         if (c <= tt and temp[tt - c] ~= nil and (temp[tt] == nil or temp[tt][0] > temp[tt - c][0] + 1)) then
+            temp[tt] = {unpack(temp[tt - c])}
+            temp[tt][0] = temp[tt - c][0] + 1
+            temp[tt][i] = temp[tt][i] + 1
+         end
       end
    end
 
-   return nil
+   return temp[target]
 end
 
 groundaccelconstants = {
@@ -478,7 +476,7 @@ function runlua()
       if (not shown) then
          dlg:show()
          shown = true
-         msg.title = "v1.0.0"
+         msg.title = "v1.0.1"
          rem.title = ""
       end
 
@@ -521,7 +519,7 @@ function init()
    clr = iup.button {title = "CLR", expand = "YES", action = clear}
    hbox3 = iup.hbox {msc, gfa, clr, margin = "4"}
 
-   msg = iup.label {title = "v1.0.0", expand = "YES", alignment = "aleft", padding = "4"}
+   msg = iup.label {title = "v1.0.1", expand = "YES", alignment = "aleft", padding = "4"}
    rem = iup.label {title = "Rxxx", expand = "NO", alignment = "aright", padding = "4"}
    tbox = iup.hbox {msg, rem, margin = "4"}
 
